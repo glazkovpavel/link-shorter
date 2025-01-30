@@ -1,0 +1,33 @@
+version: "3.8"
+
+services:
+  postgres:
+    container_name: postgres_go
+    image: postgres:16.6
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: my_pass
+      PGDATA: /data/postgres
+    volumes:
+      - ./postgres-data:/data/postgres
+    ports:
+      - "5432:5432"
+    networks:
+      - postgres_network
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com    # Логин для входа
+      PGADMIN_DEFAULT_PASSWORD: secret            # Пароль
+    ports:
+      - "8080:80"                                 # Доступ на localhost:8080
+    networks:
+      - postgres_network
+    depends_on:
+      - postgres
+
+networks:
+  postgres_network:
+    driver: bridge
