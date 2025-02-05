@@ -6,6 +6,7 @@ import (
 	"go/link-shorter/internal/auth"
 	"go/link-shorter/internal/link"
 	"go/link-shorter/pkg/db"
+	"go/link-shorter/pkg/middleware"
 	"net/http"
 )
 
@@ -22,9 +23,13 @@ func main() {
 		LinkRepository: linkRepository,
 	})
 
+	stack := middleware.Chain(
+		middleware.CORS,
+		middleware.Logging,
+	)
 	server := http.Server{
 		Addr:    ":8080",
-		Handler: router,
+		Handler: stack(router),
 	}
 
 	fmt.Println("Listening on port 8080")
