@@ -27,6 +27,7 @@ func NewLinkHandler(router *http.ServeMux, deps LinkHandlerDeps) {
 	router.Handle("PATCH /link/{id}", middleware.IsAuthed(handler.Update(), deps.Config))
 	router.HandleFunc("DELETE /link/{id}", handler.Delete())
 	router.HandleFunc("GET /{hash}", handler.Goto())
+	router.Handle("GET /link", middleware.IsAuthed(handler.GetAll(), deps.Config))
 }
 
 func (handler *LinkHandler) Create() http.HandlerFunc {
@@ -112,5 +113,28 @@ func (handler *LinkHandler) Goto() http.HandlerFunc {
 			return
 		}
 		http.Redirect(w, req, link.URL, http.StatusTemporaryRedirect)
+	}
+}
+
+func (handler *LinkHandler) GetAll() http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		limit, err := strconv.Atoi(req.URL.Query().Get("limit"))
+		if err != nil {
+			http.Error(w, "Invalid limit", http.StatusBadRequest)
+			return
+		}
+		offset, err := strconv.Atoi(req.URL.Query().Get("offset"))
+		if err != nil {
+			http.Error(w, "Invalid offset", http.StatusBadRequest)
+			return
+		}
+		links := handler.LinkRepository.GetAll(limit, offset)
+		count := handler.LinkRepository.Count()
+
+		response.Json(w, GetAllLinksResponse{
+			Links: links,
+			Count: count,
+		}, http.StatusOK)
+
 	}
 }
