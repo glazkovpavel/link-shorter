@@ -3,6 +3,7 @@ package link
 import (
 	"fmt"
 	"go/link-shorter/configs"
+	"go/link-shorter/pkg/event"
 	"go/link-shorter/pkg/middleware"
 	"go/link-shorter/pkg/request"
 	"go/link-shorter/pkg/response"
@@ -14,14 +15,17 @@ import (
 type LinkHandlerDeps struct {
 	LinkRepository *LinkRepository
 	Config         *configs.Config
+	EventBus       *event.EventBus
 }
 type LinkHandler struct {
 	LinkRepository *LinkRepository
+	EventBus       *event.EventBus
 }
 
 func NewLinkHandler(router *http.ServeMux, deps LinkHandlerDeps) {
 	handler := &LinkHandler{
 		LinkRepository: deps.LinkRepository,
+		EventBus:       deps.EventBus,
 	}
 	router.Handle("POST /link", middleware.IsAuthed(handler.Create(), deps.Config))
 	router.Handle("PATCH /link/{id}", middleware.IsAuthed(handler.Update(), deps.Config))
@@ -112,6 +116,10 @@ func (handler *LinkHandler) Goto() http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusNotFound)
 			return
 		}
+		go handler.EventBus.Publish(event.Event{
+			Type: event.EventLinkVisited,
+			Data: link.ID,
+		})
 		http.Redirect(w, req, link.URL, http.StatusTemporaryRedirect)
 	}
 }
